@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PageDrop — Project Router</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0908;
+      color: #fafaf9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    p { color: #a8a29e; margin-bottom: 2rem; font-size: 1.1rem; }
+    .search-box { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+    input {
+      flex: 1;
+      padding: 15px 20px;
+      border: 2px solid #292524;
+      border-radius: 12px;
+      background: #141210;
+      color: #fafaf9;
+      font-size: 1rem;
+      font-family: 'Courier New', monospace;
+      transition: border-color 0.3s;
+    }
+    input:focus { outline: none; border-color: #f59e0b; }
+    input::placeholder { color: #57534e; }
+    button {
+      padding: 15px 30px;
+      background: #f59e0b;
+      color: #0a0908;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background: #fbbf24; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error { color: #fca5a5; margin-top: 1rem; display: none; }
+    .info {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #141210;
+      border: 1px solid #292524;
+      border-radius: 12px;
+      text-align: left;
+    }
+    .info h3 { color: #f59e0b; margin-bottom: 0.5rem; font-size: 1rem; }
+    .info p { color: #a8a29e; font-size: 0.9rem; margin-bottom: 0; }
+    code {
+      background: #1c1917;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PageDrop Router</h1>
+    <p>Enter your 12-character project ID to view your site</p>
+
+    <div class="search-box">
+      <input
+        type="text"
+        id="projectId"
+        placeholder="e.g. 4YdSiwemVnF1"
+        maxlength="12"
+        autocomplete="off"
+      >
+      <button id="loadBtn" onclick="loadProject()">Load</button>
+    </div>
+
+    <div class="error" id="errorMsg">Project not found or no index.html in that folder</div>
+
+    <div class="info">
+      <h3>How it works</h3>
+      <p>
+        When you upload files to PageDrop, they're stored in a folder named with a unique ID,
+        like <code>4YdSiwemVnF1</code>. Enter that ID here to jump straight to that project.
+        The folder must contain a file named exactly <code>index.html</code> — that's the one
+        GitHub Pages loads as the main page.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function setLoading(isLoading) {
+      document.getElementById('loadBtn').disabled = isLoading;
+      document.getElementById('loadBtn').textContent = isLoading ? 'Checking…' : 'Load';
+    }
+
+    function loadProject() {
+      const input = document.getElementById('projectId');
+      const errorMsg = document.getElementById('errorMsg');
+      const projectId = input.value.trim();
+
+      if (!projectId || projectId.length !== 12 || !/^[A-Za-z0-9_-]+$/.test(projectId)) {
+        errorMsg.textContent = 'Please enter a valid 12-character project ID';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      errorMsg.style.display = 'none';
+      setLoading(true);
+
+      const projectUrl = `./${projectId}/index.html`;
+
+      fetch(projectUrl, { method: 'HEAD' })
+        .then(response => {
+          setLoading(false);
+          if (response.ok) {
+            window.location.href = projectUrl;
+          } else {
+            errorMsg.textContent = 'Project not found or no index.html in that folder';
+            errorMsg.style.display = 'block';
+          }
+        })
+        .catch(error => {
+          setLoading(false);
+          errorMsg.textContent = 'Error loading project: ' + error.message;
+          errorMsg.style.display = 'block';
+        });
+    }
+
+    document.getElementById('projectId').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') loadProject();
+    });
+
+    document.getElementById('projectId').focus();
+
+    // Supports direct links like ?id=4YdSiwemVnF1 to skip typing.
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectIdFromUrl = urlParams.get('id');
+    if (projectIdFromUrl) {
+      document.getElementById('projectId').value = projectIdFromUrl;
+      loadProject();
+    }
+  </script>
+</body>
+</html>
