@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en" x-data="pagedrop()" x-init="init()">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PageDrop — Drop Your Pages, No Login Needed</title>
+  <meta name="description" content="Free, instant static hosting. No signup, no login. Drop your HTML, CSS, JS and get a shareable link in seconds." />
+  <meta name="keywords" content="static hosting, free hosting, no login, frontend hosting, cloudflare, developer tools" />
+  <meta property="og:title" content="PageDrop — Free Static Hosting" />
+  <meta property="og:description" content="Drop your pages. Share instantly. No login required." />
+  <meta property="og:type" content="website" />
+
+  <!-- 10 Frameworks -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/relativeTime.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+  <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/bundled/lenis.min.js"></script>
+  <script src="pagedrop-live.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: { 450: '#f5a623', 550: '#d97706', 650: '#b45309' },
+            stone: { 850: '#1c1917', 950: '#0c0a09' }
+          },
+          fontFamily: {
+            serif: ['"Instrument Serif"', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg: #0a0908;
+      --surface: #141210;
+      --surface-2: #1c1917;
+      --border: #292524;
+      --text: #fafaf9;
+      --muted: #a8a29e;
+      --accent: #f59e0b;
+      --accent-soft: rgba(245, 158, 11, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: 'Instrument Serif', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    .grain::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    #three-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #44403c; }
+
+    .btn-organic {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-organic::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.2), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .btn-organic:hover::after { opacity: 1; }
+    .btn-organic:hover { transform: translateY(-2px); }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(245,158,11,0.02) 10px, rgba(245,158,11,0.02) 20px);
+    }
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      transform: scale(1.01);
+    }
+
+    .card-hover {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .marquee {
+      display: flex;
+      animation: marquee 40s linear infinite;
+    }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .page-enter { animation: pageIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: var(--accent-soft);
+      color: #fbbf24;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border: 1px solid rgba(245, 158, 11, 0.15);
+    }
+
+    .toast {
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 400px;
+    }
+    .toast.success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #86efac; }
+    .toast.error { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+    .toast.info { background: var(--accent-soft); border-color: rgba(245,158,11,0.3); color: #fde68a; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface) 50%, var(--surface-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+    .ad-slot { display: none; }
+    .ad-slot.active { display: block; }
+
+    .hand-underline {
+      position: relative;
+      display: inline-block;
+    }
+    .hand-underline::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8'%3E%3Cpath d='M0 4 Q 25 0, 50 4 T 100 4' stroke='%23f59e0b' stroke-width='2' fill='none'/%3E%3C/svg%3E") repeat-x;
+      background-size: 100px 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body class="grain min-h-screen">
+
+  <canvas id="three-canvas"></canvas>
+
+  <div id="ad-infrastructure" class="ad-slot">
+    <div class="fixed bottom-4 left-4 right-4 z-40 max-w-2xl mx-auto">
+      <div class="bg-stone-900/95 backdrop-blur border border-stone-700 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs text-stone-500 uppercase tracking-wider mb-1">Sponsored</div>
+          <div class="text-sm text-stone-200" id="ad-content">Ad placeholder</div>
+        </div>
+        <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" class="text-stone-500 hover:text-stone-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="scrolled ? 'bg-stone-950/80 backdrop-blur-xl border-b border-stone-800' : 'bg-transparent'">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#/" @click.prevent="navigate('home')" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center transition-transform group-hover:rotate-12">
+          <i data-lucide="arrow-down-to-line" class="w-4 h-4 text-stone-950"></i>
+        </div>
+        <span class="font-serif text-xl tracking-tight">PageDrop</span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-1">
+        <template x-for="item in navItems">
+          <a :href="'#/' + item.id" @click.prevent="navigate(item.id)"
+             class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+             :class="currentPage === item.id ? 'text-amber-400 bg-amber-500/10' : 'text-stone-400 hover:text-stone-100 hover:bg-stone-800/50'"
+             x-text="item.label"></a>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="#/upload" @click.prevent="navigate('upload')"
+           class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-medium text-sm transition-all btn-organic">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          Drop Files
+        </a>
+        <button @click="mobileMenu = !mobileMenu" class="md:hidden p-2 rounded-lg hover:bg-stone-800">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <div x-show="mobileMenu" x-transition class="md:hidden border-t border-stone-800 bg-stone-950/95 backdrop-blur-xl">
+      <div class="px-6 py-4 space-y-1">
+        <template x-for="item in navItems">
+          <a :href="'#/' + item.id" @click.prevent="navigate(item.id); mobileMenu = false"
+             class="block py-3 text-sm text-stone-300 hover:text-amber-400 transition-colors"
+             x-text="item.label"></a>
+        </template>
+      </div>
+    </div>
+  </nav>
+
+  <main class="relative z-10 pt-16">
+
+    <template x-if="currentPage === 'home'">
+      <div class="page-enter">
+        <section class="relative px-6 pt-20 pb-24 sm:pt-32 sm:pb-40">
+          <div class="max-w-5xl mx-auto">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-stone-700 bg-stone-900/50 text-xs text-stone-400 mb-8" data-aos="fade-down">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              Community-driven · Open-source · Zero egress costs
+            </div>
+
+            <h1 class="font-serif text-6xl sm:text-7xl md:text-8xl leading-[0.95] tracking-tight mb-8" data-aos="fade-up" data-aos-delay="100">
+              Drop your pages.<br>
+              <span class="text-amber-400 italic">Share instantly.</span><br>
+              <span class="text-stone-500">No login needed.</span>
+            </h1>
+
+            <p class="text-lg sm:text-xl text-stone-400 max-w-2xl mb-10 leading-relaxed" data-aos="fade-up" data-aos-delay="200">
+              Free static hosting in seconds. Upload your front-end project and get a shareable link.
+              Built for developers, by developers. Powered by Cloudflare.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-start gap-4" data-aos="fade-up" data-aos-delay="300">
+              <a href="#/upload" @click.prevent="navigate('upload')"
+                 class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-medium transition-all btn-organic">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                Start Dropping
+              </a>
+              <a href="https://hjk-maker.github.io/pagedrop-storage/" target="_blank" rel="noopener"
+                 class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl border border-stone-700 hover:border-stone-600 text-stone-300 font-medium transition-all">
+                <i data-lucide="compass" class="w-4 h-4"></i>
+                Explore Community
+              </a>
+            </div>
+
+            <div class="mt-16 grid grid-cols-3 gap-8 max-w-2xl" data-aos="fade-up" data-aos-delay="400">
+              <div>
+                <div class="font-serif text-4xl text-amber-400" id="stat-users">0</div>
+                <div class="text-sm text-stone-500 mt-1">Community Members</div>
+              </div>
+              <div>
+                <div class="font-serif text-4xl text-amber-400" id="stat-projects">0</div>
+                <div class="text-sm text-stone-500 mt-1">Projects Hosted</div>
+              </div>
+              <div>
+                <div class="font-serif text-4xl text-amber-400">$0</div>
+                <div class="text-sm text-stone-500 mt-1">Egress Cost</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="border-y border-stone-800 py-6 overflow-hidden bg-stone-900/30">
+          <div class="marquee whitespace-nowrap">
+            <template x-for="i in 2">
+              <div class="flex items-center gap-12 px-6 text-stone-500 text-sm">
+                <span class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-amber-400"></i> No login required</span>
+                <span class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-amber-400"></i> Unlimited file count</span>
+                <span class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-amber-400"></i> Global CDN</span>
+                <span class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-amber-400"></i> Open source frontend</span>
+                <span class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-amber-400"></i> Community searchable</span>
+                <span class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-amber-400"></i> Zero bandwidth fees</span>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <section class="px-6 py-24">
+          <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16" data-aos="fade-up">
+              <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Why PageDrop</div>
+              <h2 class="font-serif text-5xl sm:text-6xl mb-4">Built different.</h2>
+              <p class="text-stone-400 max-w-xl mx-auto">Static hosting without the friction.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <template x-for="(feature, idx) in features">
+                <div class="card-hover p-7 rounded-2xl bg-stone-900/50 border border-stone-800" :data-aos="'fade-up'" :data-aos-delay="idx * 100">
+                  <div class="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center mb-5">
+                    <i :data-lucide="feature.icon" class="w-5 h-5 text-amber-400"></i>
+                  </div>
+                  <h3 class="font-serif text-xl mb-2" x-text="feature.title"></h3>
+                  <p class="text-sm text-stone-400 leading-relaxed" x-text="feature.desc"></p>
+                </div>
+              </template>
+            </div>
+          </div>
+        </section>
+
+        <section class="px-6 py-24 bg-stone-900/30 border-y border-stone-800">
+          <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-16" data-aos="fade-up">
+              <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Three Steps</div>
+              <h2 class="font-serif text-5xl sm:text-6xl">That's it.</h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+              <template x-for="(step, idx) in steps">
+                <div class="relative" data-aos="fade-up" :data-aos-delay="idx * 150">
+                  <div class="font-serif text-7xl text-stone-800 mb-4" x-text="'0' + (idx + 1)"></div>
+                  <h3 class="font-serif text-2xl mb-2" x-text="step.title"></h3>
+                  <p class="text-stone-400 leading-relaxed" x-text="step.desc"></p>
+                </div>
+              </template>
+            </div>
+          </div>
+        </section>
+
+        <section class="px-6 py-24">
+          <div class="max-w-4xl mx-auto text-center" data-aos="zoom-in">
+            <h2 class="font-serif text-5xl sm:text-6xl mb-6">Ready to drop?</h2>
+            <p class="text-stone-400 text-lg mb-10 max-w-xl mx-auto">
+              Join thousands of developers sharing their work, zero friction.
+            </p>
+            <a href="#/upload" @click.prevent="navigate('upload')"
+               class="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-medium transition-all btn-organic">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+              Upload Your First Project
+            </a>
+          </div>
+        </section>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'upload'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="mb-10" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Upload</div>
+            <h1 class="font-serif text-5xl sm:text-6xl mb-3">Drop your files.</h1>
+            <p class="text-stone-400 text-lg">HTML, CSS, JS, images, fonts — anything static.</p>
+          </div>
+
+          <div id="drop-zone" class="drop-zone rounded-3xl p-16 text-center cursor-pointer mb-8"
+               @click="$refs.fileInput.click()"
+               @dragenter.prevent="dragOver = true"
+               @dragover.prevent="dragOver = true"
+               @dragleave.prevent="dragOver = false"
+               @drop.prevent="handleDrop($event)"
+               :class="dragOver ? 'drag-over' : ''">
+            <input type="file" x-ref="fileInput" multiple class="hidden" @change="handleFiles($event.target.files)" />
+            <div class="w-20 h-20 rounded-2xl bg-stone-800 border border-stone-700 flex items-center justify-center mx-auto mb-6">
+              <i data-lucide="cloud-upload" class="w-9 h-9 text-stone-400"></i>
+            </div>
+            <div class="font-serif text-2xl mb-2">Drop files here</div>
+            <div class="text-sm text-stone-500">or click to browse · HTML, CSS, JS, images, fonts</div>
+          </div>
+
+          <div x-show="files.length" class="space-y-2 mb-8" x-transition>
+            <div class="flex items-center justify-between text-sm mb-3">
+              <span class="text-stone-400"><span x-text="files.length"></span> file(s) selected</span>
+              <button @click="files = []" class="text-stone-500 hover:text-red-400 transition-colors">Clear all</button>
+            </div>
+            <template x-for="(file, idx) in files">
+              <div class="flex items-center gap-3 p-4 rounded-xl bg-stone-900/50 border border-stone-800 group">
+                <div class="w-9 h-9 rounded-lg bg-stone-800 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="file" class="w-4 h-4 text-stone-400"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium truncate" x-text="file.name"></div>
+                  <div class="text-xs text-stone-500" x-text="formatBytes(file.size)"></div>
+                </div>
+                <button @click="files.splice(idx, 1)" class="p-1.5 rounded-lg hover:bg-red-500/10 text-stone-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </template>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-sm font-medium mb-2 text-stone-400">Tags <span class="text-stone-600">(optional, press Enter)</span></label>
+            <div class="flex flex-wrap gap-2 p-3 rounded-xl bg-stone-900/50 border border-stone-800 focus-within:border-amber-500/40 transition-colors">
+              <template x-for="(tag, idx) in tags">
+                <span class="tag">
+                  <span x-text="tag"></span>
+                  <button @click="tags.splice(idx, 1)" class="ml-1 opacity-60 hover:opacity-100">&times;</button>
+                </span>
+              </template>
+              <input type="text" x-ref="tagInput" placeholder="e.g. react, portfolio"
+                     @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
+                     class="flex-1 min-w-[140px] bg-transparent text-sm outline-none placeholder:text-stone-600" />
+            </div>
+          </div>
+
+          <button @click="doUpload()" :disabled="!files.length || uploading"
+                  class="w-full py-4 rounded-xl font-medium text-base transition-all flex items-center justify-center gap-2.5 btn-organic"
+                  :class="files.length && !uploading ? 'bg-amber-500 hover:bg-amber-400 text-stone-950' : 'bg-stone-800 text-stone-500 cursor-not-allowed'">
+            <template x-if="uploading">
+              <span class="w-5 h-5 border-2 border-stone-950/30 border-t-stone-950 rounded-full animate-spin"></span>
+            </template>
+            <template x-if="!uploading">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+            </template>
+            <span x-text="uploading ? 'Uploading...' : 'Drop It'"></span>
+          </button>
+
+          <div x-show="uploadResult" x-transition class="mt-8 p-6 rounded-2xl border border-green-500/30 bg-green-500/5">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i>
+              </div>
+              <div>
+                <div class="font-medium text-green-300">Your site is live</div>
+                <div class="text-sm text-stone-400">ID: <code class="text-amber-400 font-mono" x-text="uploadResult?.id"></code></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 p-3 rounded-xl bg-stone-950/50 border border-stone-800">
+              <a :href="uploadResult?.url" target="_blank" class="flex-1 text-sm font-mono text-amber-400 underline truncate" x-text="uploadResult?.url"></a>
+              <button @click="copyLink()" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 text-sm font-medium transition-colors">Copy</button>
+            </div>
+          </div>
+
+          <div x-show="uploadError" x-transition class="mt-8 p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-sm text-red-300" x-text="uploadError"></div>
+
+          <div class="mt-8 p-4 rounded-xl bg-stone-900/30 border border-stone-800 text-sm text-stone-400 leading-relaxed">
+            <i data-lucide="info" class="w-4 h-4 inline text-amber-400 mr-1"></i>
+            Free-tier uploads may enter a short queue during peak times. Files are public and searchable by the community.
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'file'">
+      <div class="page-enter px-6 py-8">
+        <div class="max-w-7xl mx-auto">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <div class="flex items-center gap-2 text-sm text-stone-500 mb-2">
+                <a href="#/" @click.prevent="navigate('home')" class="hover:text-stone-200 transition-colors">Home</a>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                <span class="font-mono text-stone-400" x-text="fileData?.id"></span>
+              </div>
+              <h1 class="font-serif text-3xl" x-text="fileData?.name || 'Loading...'"></h1>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="copyProjectLink()" class="px-4 py-2.5 rounded-lg border border-stone-700 hover:border-stone-600 text-sm font-medium transition-all flex items-center gap-2">
+                <i data-lucide="link" class="w-3.5 h-3.5"></i> Copy Link
+              </button>
+            </div>
+          </div>
+
+          <div x-show="fileError" class="p-6 rounded-2xl border border-red-500/30 bg-red-500/5 text-red-300 text-sm" x-text="fileError"></div>
+
+          <div x-show="!fileError" class="grid lg:grid-cols-[280px_1fr] gap-6">
+            <div class="space-y-4">
+              <div class="rounded-2xl bg-stone-900/50 border border-stone-800 overflow-hidden">
+                <div class="px-4 py-3 border-b border-stone-800 text-xs font-semibold text-stone-500 uppercase tracking-wider">Files</div>
+                <div class="p-2 space-y-0.5 max-h-[50vh] overflow-y-auto">
+                  <template x-for="f in fileData?.files">
+                    <a :href="fileUrl(fileData?.id, f.key)" target="_blank" class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-800/50 transition-colors text-sm text-stone-400 hover:text-stone-100">
+                      <i data-lucide="file" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                      <span class="truncate" x-text="f.key"></span>
+                      <span class="ml-auto text-xs text-stone-600 flex-shrink-0" x-text="formatBytes(f.size)"></span>
+                    </a>
+                  </template>
+                </div>
+              </div>
+
+              <div class="rounded-2xl bg-stone-900/50 border border-stone-800 overflow-hidden">
+                <div class="px-4 py-3 border-b border-stone-800 text-xs font-semibold text-stone-500 uppercase tracking-wider">Details</div>
+                <div class="p-4 space-y-3 text-sm">
+                  <div class="flex justify-between"><span class="text-stone-500">Files</span><span x-text="fileData?.files?.length"></span></div>
+                  <div class="flex justify-between"><span class="text-stone-500">Size</span><span x-text="formatBytes(fileData?.total_size || 0)"></span></div>
+                  <div class="flex justify-between"><span class="text-stone-500">Created</span><span x-text="timeAgo(fileData?.created_at)"></span></div>
+                  <div x-show="fileData?.tags?.length">
+                    <span class="text-stone-500 block mb-2">Tags</span>
+                    <div class="flex flex-wrap gap-1.5">
+                      <template x-for="t in fileData?.tags">
+                        <span class="tag text-xs" x-text="t"></span>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-stone-900/30 border border-stone-800 overflow-hidden min-h-[60vh]">
+              <iframe x-show="entryPointUrl(fileData)" :src="entryPointUrl(fileData)" class="w-full h-full min-h-[60vh] bg-white" title="Live preview"></iframe>
+              <div x-show="!entryPointUrl(fileData)" class="text-center p-12">
+                <i data-lucide="eye" class="w-12 h-12 text-stone-700 mx-auto mb-4"></i>
+                <p class="text-stone-400">No index.html found to preview</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'about'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-4xl mx-auto">
+          <div class="mb-12" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">About</div>
+            <h1 class="font-serif text-5xl sm:text-6xl mb-6">Built by developers,<br>for developers.</h1>
+            <p class="text-stone-400 text-lg leading-relaxed">
+              PageDrop is a static hosting platform built for speed and simplicity. No login. No signup. Just drop your files and share.
+            </p>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'privacy'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="mb-10" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Legal</div>
+            <h1 class="font-serif text-5xl mb-4">Privacy Policy</h1>
+            <p class="text-stone-500">Last updated: <span x-text="dayjs().format('MMMM D, YYYY')"></span></p>
+          </div>
+          <div class="prose prose-invert max-w-none space-y-8 text-stone-400 leading-relaxed" data-aos="fade-up">
+            <section>
+              <h2 class="font-serif text-2xl text-stone-100 mb-3">Information We Collect</h2>
+              <p>PageDrop stores file metadata (name, size, type, upload timestamp), optional tags, and a unique 12-character identifier. We do not require accounts or collect personal information on the free tier.</p>
+            </section>
+            <section>
+              <h2 class="font-serif text-2xl text-stone-100 mb-3">Data Storage</h2>
+              <p>Files are stored in Cloudflare R2. Metadata is stored in Cloudflare D1. Both are operated directly by PageDrop for the sole purpose of hosting and serving your project.</p>
+            </section>
+            <section>
+              <h2 class="font-serif text-2xl text-stone-100 mb-3">Your Rights</h2>
+              <p>Contact us with your file ID to request deletion at any time.</p>
+            </section>
+            <section>
+              <h2 class="font-serif text-2xl text-stone-100 mb-3">Contact</h2>
+              <p>For privacy concerns, contact <a href="mailto:privacy@pagedrop.com" class="text-amber-400 hover:text-amber-300">privacy@pagedrop.com</a>.</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'terms'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="mb-10" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Legal</div>
+            <h1 class="font-serif text-5xl mb-4">Terms of Service</h1>
+            <p class="text-stone-500">Last updated: <span x-text="dayjs().format('MMMM D, YYYY')"></span></p>
+          </div>
+          <div class="prose prose-invert max-w-none space-y-8 text-stone-400 leading-relaxed" data-aos="fade-up">
+            <section>
+              <h2 class="font-serif text-2xl text-stone-100 mb-3">Acceptable Use</h2>
+              <p>Don't upload content that's illegal, infringes IP rights, contains malware, or violates the rights of others. We may remove violating content without notice.</p>
+            </section>
+            <section>
+              <h2 class="font-serif text-2xl text-stone-100 mb-3">Your Content</h2>
+              <p>You retain all rights to your uploaded content. By uploading public content, you grant PageDrop a license to host and distribute it as part of the service.</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'dmca'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="mb-10" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Legal</div>
+            <h1 class="font-serif text-5xl mb-4">DMCA Policy</h1>
+          </div>
+          <div class="prose prose-invert max-w-none space-y-8 text-stone-400 leading-relaxed" data-aos="fade-up">
+            <p>Send DMCA notices to <a href="mailto:dmca@pagedrop.com" class="text-amber-400 hover:text-amber-300">dmca@pagedrop.com</a>.</p>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'contact'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="mb-10" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">Contact</div>
+            <h1 class="font-serif text-5xl sm:text-6xl mb-4">Get in touch.</h1>
+          </div>
+          <div class="p-8 rounded-2xl bg-stone-900/50 border border-stone-800" data-aos="fade-up">
+            <form @submit.prevent="submitContact()" class="space-y-4">
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-stone-400 mb-2">Name</label>
+                  <input type="text" x-model="contactForm.name" required class="w-full px-4 py-3 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-500/40 text-sm outline-none transition-colors" />
+                </div>
+                <div>
+                  <label class="block text-sm text-stone-400 mb-2">Email</label>
+                  <input type="email" x-model="contactForm.email" required class="w-full px-4 py-3 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-500/40 text-sm outline-none transition-colors" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-stone-400 mb-2">Subject</label>
+                <input type="text" x-model="contactForm.subject" required class="w-full px-4 py-3 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-500/40 text-sm outline-none transition-colors" />
+              </div>
+              <div>
+                <label class="block text-sm text-stone-400 mb-2">Message</label>
+                <textarea x-model="contactForm.message" rows="5" required class="w-full px-4 py-3 rounded-xl bg-stone-950 border border-stone-800 focus:border-amber-500/40 text-sm outline-none transition-colors resize-none"></textarea>
+              </div>
+              <button type="submit" class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-medium transition-all btn-organic">Send Message</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="currentPage === 'faq'">
+      <div class="page-enter px-6 py-16">
+        <div class="max-w-3xl mx-auto">
+          <div class="mb-10" data-aos="fade-up">
+            <div class="text-xs uppercase tracking-widest text-amber-400 mb-3">FAQ</div>
+            <h1 class="font-serif text-5xl sm:text-6xl mb-4">Questions?</h1>
+          </div>
+          <div class="space-y-3" data-aos="fade-up">
+            <template x-for="(faq, idx) in faqs">
+              <div class="rounded-2xl bg-stone-900/50 border border-stone-800 overflow-hidden">
+                <button @click="faq.open = !faq.open" class="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-stone-800/30 transition-colors">
+                  <span class="font-medium pr-4" x-text="faq.q"></span>
+                  <i data-lucide="chevron-down" class="w-5 h-5 text-stone-500 flex-shrink-0 transition-transform" :class="faq.open ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="faq.open" x-transition class="px-6 pb-5 text-stone-400 leading-relaxed" x-text="faq.a"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+  </main>
+
+  <footer class="relative z-10 border-t border-stone-800 mt-24 bg-stone-950/50 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-6 py-12">
+      <div class="grid md:grid-cols-4 gap-8 mb-10">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+              <i data-lucide="arrow-down-to-line" class="w-4 h-4 text-stone-950"></i>
+            </div>
+            <span class="font-serif text-xl">PageDrop</span>
+          </div>
+          <p class="text-stone-400 text-sm leading-relaxed max-w-sm">
+            Free static hosting for developers. Powered by Cloudflare. Drop your pages, share instantly.
+          </p>
+        </div>
+        <div>
+          <div class="font-medium mb-4 text-sm">Product</div>
+          <ul class="space-y-2 text-sm text-stone-400">
+            <li><a href="#/upload" @click.prevent="navigate('upload')" class="hover:text-amber-400 transition-colors">Upload</a></li>
+            <li><a href="https://hjk-maker.github.io/pagedrop-storage/" target="_blank" rel="noopener" class="hover:text-amber-400 transition-colors">Browse</a></li>
+            <li><a href="#/faq" @click.prevent="navigate('faq')" class="hover:text-amber-400 transition-colors">FAQ</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="font-medium mb-4 text-sm">Legal</div>
+          <ul class="space-y-2 text-sm text-stone-400">
+            <li><a href="#/privacy" @click.prevent="navigate('privacy')" class="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
+            <li><a href="#/terms" @click.prevent="navigate('terms')" class="hover:text-amber-400 transition-colors">Terms of Service</a></li>
+            <li><a href="#/dmca" @click.prevent="navigate('dmca')" class="hover:text-amber-400 transition-colors">DMCA Policy</a></li>
+            <li><a href="#/contact" @click.prevent="navigate('contact')" class="hover:text-amber-400 transition-colors">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pt-8 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+        <div>© 2026 PageDrop.</div>
+        <div class="flex items-center gap-4">
+          <span>Built with Cloudflare</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toasts" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3" aria-live="polite"></div>
+
+<script>
+// Point this at your deployed Worker (see worker/wrangler.toml).
+// Local dev default assumes `wrangler dev` running on 8787.
+const API_BASE = window.PAGEDROP_API_BASE || 'https://pagedrop-worker.hjk-maker.workers.dev';
+
+function pagedrop() {
+  return {
+    currentPage: 'home',
+    mobileMenu: false,
+    scrolled: false,
+    dragOver: false,
+    files: [],
+    tags: [],
+    uploading: false,
+    uploadResult: null,
+    uploadError: null,
+    fileData: null,
+    fileError: null,
+    contactForm: { name: '', email: '', subject: '', message: '' },
+
+    navItems: [
+      { id: 'home', label: 'Home' },
+      { id: 'upload', label: 'Upload' },
+      { id: 'about', label: 'About' },
+      { id: 'faq', label: 'FAQ' },
+      { id: 'contact', label: 'Contact' }
+    ],
+
+    features: [
+      { icon: 'shield-off', title: 'No Login Required', desc: 'Upload and share using a unique 12-character ID. No accounts, no passwords, no friction.' },
+      { icon: 'zap', title: 'Instant CDN Delivery', desc: 'Files served from Cloudflare\'s global edge network.' },
+      { icon: 'layers', title: 'Full Project Upload', desc: 'Upload HTML, CSS, JS, images, fonts — entire front-end projects as one unit.' },
+      { icon: 'search', title: 'Community Discovery', desc: 'All public projects are searchable. Find inspiration, learn from real code.' },
+      { icon: 'lock', title: 'Your Files, Your Rights', desc: 'Request deletion of your project any time.' }
+    ],
+
+    steps: [
+      { title: 'Drop Files', desc: 'Drag and drop your HTML, CSS, and JS files onto the upload zone. Add optional tags for discovery.' },
+      { title: 'Get Your Link', desc: 'Receive a unique 12-character ID and an instant shareable URL. No account needed.' },
+      { title: 'Share Anywhere', desc: 'Send the link to anyone. Your project is live immediately.' }
+    ],
+
+    faqs: [
+      { q: 'Is PageDrop really free?', a: 'Yes. PageDrop is free to use on the community tier.', open: false },
+      { q: 'Do I need to create an account?', a: 'No. PageDrop requires no login, no signup, no email.', open: false },
+      { q: 'What file types are supported?', a: 'HTML, CSS, JavaScript, JSON, images, fonts, and text files. Max 10MB per file.', open: false },
+      { q: 'Are my files public?', a: 'Free tier uploads are public and searchable. You can request deletion anytime.', open: false },
+      { q: 'How long do files stay hosted?', a: 'Indefinitely, unless you request deletion or the content violates our terms of service.', open: false }
+    ],
+
+    init() {
+      this.setupRouter();
+      this.setupScroll();
+      this.setupThreeJS();
+      this.setupAnimations();
+      this.setupLenis();
+      this.loadStats();
+    },
+
+    setupRouter() {
+      const parseHash = () => {
+        const hash = location.hash.slice(1) || '/';
+        const path = hash.split('/')[1] || 'home';
+        const id = hash.split('/')[2];
+        this.navigate(path, id, false);
+      };
+      parseHash();
+      window.addEventListener('hashchange', parseHash);
+    },
+
+    navigate(page, id = null, updateHash = true) {
+      this.currentPage = page;
+      if (updateHash) location.hash = '#/' + page + (id ? '/' + id : '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (page === 'file' && id) {
+        this.loadProject(id);
+      }
+
+      this.$nextTick(() => {
+        if (window.lucide) lucide.createIcons();
+        if (window.AOS) AOS.refresh();
+      });
+    },
+
+    setupScroll() {
+      window.addEventListener('scroll', () => {
+        this.scrolled = window.scrollY > 20;
+      }, { passive: true });
+    },
+
+    setupLenis() {
+      if (window.Lenis) {
+        const lenis = new Lenis({ duration: 1.2, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add(time => lenis.raf(time * 1000));
+        gsap.ticker.lagSmoothing(0);
+      }
+    },
+
+    setupThreeJS() {
+      const canvas = document.getElementById('three-canvas');
+      if (!canvas || !window.THREE) return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const particlesGeometry = new THREE.BufferGeometry();
+      const count = 800;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 20;
+      }
+      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const particlesMaterial = new THREE.PointsMaterial({ size: 0.03, color: 0xf59e0b, transparent: true, opacity: 0.6 });
+      const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+      scene.add(particles);
+
+      camera.position.z = 5;
+
+      let mouseX = 0, mouseY = 0;
+      window.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+        mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+      });
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+        particles.rotation.y += 0.0008;
+        particles.rotation.x += 0.0004;
+        camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.02;
+        camera.position.y += (-mouseY * 0.5 - camera.position.y) * 0.02;
+        camera.lookAt(scene.position);
+        renderer.render(scene, camera);
+      };
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    },
+
+    setupAnimations() {
+      if (window.gsap && window.ScrollTrigger) {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('[data-aos]').forEach(el => {
+          ScrollTrigger.create({ trigger: el, start: 'top 85%', onEnter: () => el.classList.add('aos-animate') });
+        });
+      }
+      if (window.AOS) {
+        AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true, offset: 50 });
+      }
+    },
+
+    // Auto-refreshes every 15s via PageDropLive instead of a one-shot fetch.
+    loadStats() {
+      this.$nextTick(() => {
+        if (!window.PageDropLive) return;
+        PageDropLive.watch(`${API_BASE}/api/health`, {
+          interval: 15000,
+          onUpdate: (data) => {
+            this.animateValue('stat-projects', data.projects || 0);
+            this.animateValue('stat-users', data.projects || 0); // no separate user concept on free tier
+          },
+          onError: (e) => console.warn('Could not load stats:', e.message),
+        });
+      });
+    },
+
+    animateValue(id, end, duration = 1500) {
+      this.$nextTick(() => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const startTime = performance.now();
+        const update = (currentTime) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.floor(end * eased);
+          el.textContent = current.toLocaleString();
+          if (progress < 1) requestAnimationFrame(update);
+        };
+        requestAnimationFrame(update);
+      });
+    },
+
+    handleDrop(e) {
+      this.dragOver = false;
+      this.handleFiles(e.dataTransfer.files);
+    },
+
+    handleFiles(fileList) {
+      for (const f of fileList) {
+        if (!this.files.some(pf => pf.name === f.name && pf.size === f.size)) {
+          this.files.push(f);
+        }
+      }
+      this.toast(`${fileList.length} file(s) added`, 'success');
+    },
+
+    addTag(val) {
+      val = val.trim();
+      if (val && !this.tags.includes(val) && this.tags.length < 8) {
+        this.tags.push(val);
+      }
+    },
+
+    // Real upload: POSTs multipart form data to the Worker.
+    async doUpload() {
+      if (!this.files.length || this.uploading) return;
+      this.uploading = true;
+      this.uploadResult = null;
+      this.uploadError = null;
+
+      const form = new FormData();
+      for (const f of this.files) form.append('files', f, f.name);
+      form.append('name', this.files[0]?.name || 'Untitled project');
+      form.append('tags', this.tags.join(','));
+
+      try {
+        const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+        this.uploadResult = data;
+        this.files = [];
+        this.tags = [];
+        this.toast('Project uploaded successfully!', 'success');
+      } catch (err) {
+        this.uploadError = err.message;
+        this.toast(err.message, 'error');
+      } finally {
+        this.uploading = false;
+      }
+    },
+
+    copyLink() {
+      // uploadResult.url is the real GitHub Pages link the Worker computed —
+      // correct even if this project ended up in a rotated storage repo.
+      navigator.clipboard.writeText(this.uploadResult?.url || '')
+        .then(() => this.toast('Link copied!', 'success'));
+    },
+
+    copyProjectLink() {
+      navigator.clipboard.writeText(this.fileData?.liveUrl || '')
+        .then(() => this.toast('Link copied!', 'success'));
+    },
+
+    // Not used for the current upload flow (which already has uploadResult.url),
+    // kept as a fallback for anywhere only an id is on hand.
+    shareUrl(id) {
+      if (this.uploadResult?.id === id && this.uploadResult?.url) return this.uploadResult.url;
+      if (this.fileData?.id === id && this.fileData?.liveUrl) return this.fileData.liveUrl;
+      return id ? `${location.origin}${location.pathname}#/f/${id}` : '';
+    },
+
+    fileUrl(id, filename) {
+      // fileData.liveUrl already points at the correct storage repo for
+      // this specific project (it may differ from other projects' repos
+      // after rotation), so build individual file links from that.
+      if (!filename || !this.fileData?.liveUrl) return '#';
+      return this.fileData.liveUrl + filename;
+    },
+
+    entryPointUrl(fileData) {
+      if (!fileData?.files || !fileData?.liveUrl) return null;
+      const hasIndex = fileData.files.some(f => f.key === 'index.html');
+      return hasIndex ? this.fileUrl(fileData.id, 'index.html') : null;
+    },
+
+    // Real project detail load: calls /api/project/:id on the Worker.
+    async loadProject(id) {
+      this.fileData = null;
+      this.fileError = null;
+      try {
+        const res = await fetch(`${API_BASE}/api/project/${id}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Project not found');
+        this.fileData = data;
+      } catch (err) {
+        this.fileError = err.message;
+      }
+    },
+
+    async submitContact() {
+      try {
+        await PageDropLive.sendData(`${API_BASE}/api/contact`, this.contactForm);
+        this.toast('Message sent! We\'ll get back to you soon.', 'success');
+        this.contactForm = { name: '', email: '', subject: '', message: '' };
+      } catch (err) {
+        this.toast('Could not send message: ' + err.message, 'error');
+      }
+    },
+
+    formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    },
+
+    timeAgo(dateStr) {
+      if (!dateStr) return '';
+      if (window.dayjs && window.dayjs_plugin_relativeTime) {
+        dayjs.extend(window.dayjs_plugin_relativeTime);
+        return dayjs(dateStr).fromNow();
+      }
+      const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      if (s < 60) return 'just now';
+      if (s < 3600) return Math.floor(s / 60) + 'm ago';
+      if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+      return Math.floor(s / 86400) + 'd ago';
+    },
+
+    toast(message, type = 'info') {
+      const container = document.getElementById('toasts');
+      const el = document.createElement('div');
+      el.className = 'toast ' + type;
+      const icons = { success: 'check-circle-2', error: 'alert-circle', info: 'info' };
+      el.innerHTML = '<i data-lucide="' + (icons[type] || 'info') + '" class="w-4 h-4 flex-shrink-0"></i><span>' + message + '</span>';
+      container.appendChild(el);
+      if (window.lucide) lucide.createIcons({ nodes: [el] });
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(40px)';
+        el.style.transition = 'all 0.3s';
+        setTimeout(() => el.remove(), 300);
+      }, 4000);
+    }
+  };
+}
+</script>
+</body>
+</html>
