@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All-in-One Responsive Website</title>
+    
+    <!-- CSS STYLING -->
+    <style>
+        /* Reset browser defaults */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Navigation bar styling */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1a252f;
+            padding: 20px 40px;
+            color: white;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #3498db;
+        }
+
+        .cta-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .cta-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Hero section styling */
+        .hero {
+            text-align: center;
+            padding: 100px 20px;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Grid Layout for Cards */
+        .content-section {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .content-section h2 {
+            margin-bottom: 30px;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HTML STRUCTURE -->
+    
+    <!-- Navigation Menu -->
+    <nav class="navbar">
+        <div class="logo">SingleFile</div>
+        <ul class="nav-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Services</a></li>
+        </ul>
+        <button id="alertBtn" class="cta-btn">Click Me</button>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <h1>All-in-One Web Template</h1>
+        <p>HTML, CSS, and JavaScript cleanly organized in a single file.</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content-section">
+        <h2>Why Use This Layout?</h2>
+        <div class="grid-container">
+            <div class="card">
+                <h3>Easy Deployment</h3>
+                <p>One file means zero external dependencies to manage or lose track of.</p>
+            </div>
+            <div class="card">
+                <h3>Fast Prototyping</h3>
+                <p>Perfect for testing ideas quickly before building a multi-page app.</p>
+            </div>
+            <div class="card">
+                <h3>Fully Responsive</h3>
+                <p>Adapts flawlessly to smartphones, tablets, and wide monitors.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- JAVASCRIPT INTERACTIVITY -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const alertButton = document.getElementById('alertBtn');
+
+            // Handle action when user clicks the navigation button
+            alertButton.addEventListener('click', () => {
+                alert('Success! The embedded JavaScript code works perfectly.');
+            });
+        });
+    </script>
+
+</body>
+</html>
