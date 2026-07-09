@@ -117,7 +117,7 @@
       const errorMsg = document.getElementById('errorMsg');
       const projectId = input.value.trim();
 
-      if (!projectId || projectId.length !== 12 || !/^[A-Za-z0-9_-]+$/.test(projectId)) {
+      if (!projectId || projectId.length !== 30 || !/^[A-Za-z0-9_-]+$/.test(projectId)) {
         errorMsg.textContent = 'Please enter a valid 12-character project ID';
         errorMsg.style.display = 'block';
         return;
